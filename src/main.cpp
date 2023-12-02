@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 
 #define LED 2
+#define LED2 4
 
 const char* ssid = "memovalverd_2.4G";
 const char* password = "seguridadOUT#23";
