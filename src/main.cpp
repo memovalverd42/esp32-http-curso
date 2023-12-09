@@ -2,7 +2,8 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include "SPIFFS.h"
+
+#define LED 2
 
 const char* ssid = "memovalverd_2.4G";
 const char* password = "seguridadOUT#23";
