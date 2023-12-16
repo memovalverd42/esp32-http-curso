@@ -1,51 +1,35 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <WiFi.h>
 
-#define LED 2
-
-const char* ssid = "memovalverd_2.4G";
+const char* ssid = "memovalverd_ESP32";
 const char* password = "seguridadOUT#23";
 
-void conectToWiFi( void );
-
-AsyncWebServer server(81);
+WiFiServer server(1001);
 
 void setup( void ){
   Serial.begin(9600);
 
-  if(!SPIFFS.begin(true)){
-    Serial.println("Fallo al abrir el sistema de archivos");
-    return;
-  }
+  delay(3000);
 
-  conectToWiFi();
-
-  // Ruta index /
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html");
-  });
-
-  server.begin();
+  WiFi.softAP(ssid, password);
+  Serial.println(WiFi.softAPIP());
 }
 
 void loop( void ) {
+  WiFiClient client = server.available();
 
-}
+  if( client ){
+    Serial.println("Nuevo cliente!");
+    while( client.connected() ){
+      String data = client.readString();
+      Serial.print("Dato recibido: ");
+      Serial.println(data);
 
-void conectToWiFi( void ) {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Conectando a red ");
-  Serial.println(ssid);
-  while(WiFi.status() != WL_CONNECTED){
-    Serial.print('.');
-    delay(500);
+      client.print("Hola desde ESP32");
+    }
+    client.stop();
+    Serial.println("Cliente desconectado");
   }
-
-  Serial.print("\nConectado a red ");
-  Serial.println(ssid);
-  Serial.print("Con IP: ");
-  Serial.println(WiFi.localIP());
 }
