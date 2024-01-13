@@ -1,11 +1,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
 #include "FS.h"
 #include <SPIFFS.h>
-#include <DHT.h>
 #include <time.h>
+#include <DHT.h>
 
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -21600;     // Desface Para México
@@ -21,16 +19,12 @@ String getLocalTime( void );
 void recordTemperature( float temperature, String date );
 void readTemperatures( void );
 
-// Endpoits
-void handleFileDownload(AsyncWebServerRequest *request);
-
 DHT dht(15, DHT11);
-
-AsyncWebServer server(81);
 
 void setup( void ) {
   
   Serial.begin(9600);
+
   dht.begin();
 
   if(!SPIFFS.begin(true)){
@@ -43,36 +37,17 @@ void setup( void ) {
   conectToWiFi();
 
   // Configuracion y peticion de TimeStamp
-  
-  server.on("/get-temp", HTTP_GET, handleFileDownload);
-
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  server.begin();
+
   previousMillis = millis();
 }
 
 void loop( void ) {
 
-  if(millis() - previousMillis > 4000){
+  if(millis() - previousMillis > 2000){
     recordTemperature(dht.readTemperature(), getLocalTime());
     previousMillis = millis();
   }
-
-}
-
-void handleFileDownload(AsyncWebServerRequest *request) {
-
-  File file = SPIFFS.open("/temperatures.txt");
-  if(!file){
-    request->send(404, "text/plain", "Archivo no encontrado");
-    return;
-  }
-
-  AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/temperatures.txt", String(), true);
-  response->setContentType("text/plain");
-  request->send(response);
-
-  file.close();
 
 }
 
