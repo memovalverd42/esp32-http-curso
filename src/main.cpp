@@ -1,36 +1,35 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
+#include "WifiConexion.h"
+// #include <AsyncTCP.h>
+// #include <ESPAsyncWebServer.h>
 #include "FS.h"
 #include <SPIFFS.h>
+// #include <Arduino_JSON.h>
 #include <DHT.h>
 #include <time.h>
 
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -21600;     // Desface Para México
 const int   daylightOffset_sec = 0; 
+
+#define DHTPIN  15
+#define DHTTYPE DHT11
   
-const char* ssid = "memovalverd_2.4G";
-const char* password = "seguridadOUT#23";
+const char* ssid = "SALA 201";
+const char* password = "CG.PAGES";
 
-unsigned long previousMillis = 0;
+unsigned long lastMillis;
 
-void conectToWiFi( void );
 String getLocalTime( void );
-void recordTemperature( float temperature, String date );
-void readTemperatures( void );
+void recordTemp(float temp, String date);
 
-// Endpoits
-void handleFileDownload(AsyncWebServerRequest *request);
-
-DHT dht(15, DHT11);
-
-AsyncWebServer server(81);
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup( void ) {
   
   Serial.begin(9600);
+
   dht.begin();
 
   if(!SPIFFS.begin(true)){
@@ -40,71 +39,39 @@ void setup( void ) {
 
   SPIFFS.remove("/temperatures.txt");
 
-  conectToWiFi();
+  conectToWiFi(ssid, password);
 
   // Configuracion y peticion de TimeStamp
-  
-  server.on("/get-temp", HTTP_GET, handleFileDownload);
-
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  server.begin();
-  previousMillis = millis();
+
+  lastMillis = millis();
 }
+
 
 void loop( void ) {
 
-  if(millis() - previousMillis > 4000){
-    recordTemperature(dht.readTemperature(), getLocalTime());
-    previousMillis = millis();
+  if(millis() - lastMillis > 1000){
+    recordTemp(dht.readTemperature(), getLocalTime());
+    lastMillis = millis();
   }
-
+  
 }
 
-void handleFileDownload(AsyncWebServerRequest *request) {
+void recordTemp(float temp, String date){
 
-  File file = SPIFFS.open("/temperatures.txt");
-  if(!file){
-    request->send(404, "text/plain", "Archivo no encontrado");
-    return;
-  }
-
-  AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/temperatures.txt", String(), true);
-  response->setContentType("text/plain");
-  request->send(response);
-
-  file.close();
-
-}
-
-void readTemperatures( void ) {
-  File file = SPIFFS.open("/temperatures.txt");
-  if(!file){
-    Serial.println("No se encontró el archivo");
-    return;
-  }
-
-  Serial.println("Contenido del archivo: ");
-  while(file.available()){
-    Serial.write(file.read());
-  }
-  file.close();
-}
-
-void recordTemperature( float temperature, String date ) {
   File file = SPIFFS.open("/temperatures.txt", FILE_APPEND);
-  String tempFormated;
-  char buffer[100];
-
   if(!file){
-    Serial.println("No se encontró el archivo");
+    Serial.println("Error al abrir archivo");
     return;
   }
 
-  sprintf(buffer, "%0.2f°C | %s", temperature, date.c_str());
-  Serial.println(buffer);
+  String data = String(temp) + " | " + date;
 
-  file.println(buffer);
+  Serial.println(data);
+
+  file.println(data);
   file.close();
+
 }
 
 String getLocalTime( void ) {
@@ -120,20 +87,4 @@ String getLocalTime( void ) {
   String date = buffer;
 
   return date;  
-}
-
-void conectToWiFi( void ) {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Conectando a red ");
-  Serial.println(ssid);
-  while(WiFi.status() != WL_CONNECTED){
-    Serial.print('.');
-    delay(500);
-  }
-
-  Serial.print("\nConectado a red ");
-  Serial.println(ssid);
-  Serial.print("Con IP: ");
-  Serial.println(WiFi.localIP());
 }

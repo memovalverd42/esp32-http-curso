@@ -11,8 +11,8 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -21600;     // Desface Para México
 const int   daylightOffset_sec = 0; 
   
-const char* ssid = "memovalverd_2.4G";
-const char* password = "seguridadOUT#23";
+const char* ssid = "SALA 201";
+const char* password = "CG.PAGES";
 
 void conectToWiFi( void );
 String getLocalTime( void );
